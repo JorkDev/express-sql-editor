@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Editor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        textarea {
+            resize: vertical;
+        }
+        .sql-keyword {
+            color: #d9534f;
+            font-weight: bold;
+        }
+        .sql-table {
+            color: #0275d8;
+            font-weight: bold;
+        }
+        .sql-string {
+            color: #5cb85c;
+        }
+        .sql-operator {
+            color: #f0ad4e;
+            font-weight: bold;
+        }
+        .sql-code {
+            font-family: 'Courier New', monospace;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="mb-4 text-center">SQL Query Editor</h1>
+    <p class="mb-3">Escribe tu consulta SQL y edita los valores en la tabla:</p>
+
+    <div class="mb-4">
+        <textarea id="queryInput" class="form-control" placeholder="Escribe tu consulta SQL aquí..." rows="6">INSERT INTO MOVILF_ARCHIVOS (EMPRESA, SISTEMA, IMEI_TELEFONO, NOMBRE_ARCHIVO, HASH, ORIGEN, FECHA, TAMANO, DESCRIPCION, CAMPO_KEY, DIRECTORIO, TRABAJADOR, IP, ID_ARCHIVO, FLAG_OCR, TEXTO_OCR, TIPO, TIPO_ARCHIVO, NUME_ORDEN, ANO_PRESE, CODI_ADUAN, CODI_REGI, ID_CORREO, ASUNTO_CORREO, GRUPO_WS, ESTADO, VISIBLEA, FECHA_CREACION, FLAG_PREVISUALIZACION, ARCHIVO_PREVISUALIZACION1, ARCHIVO_PREVISUALIZACION2, DESCRIPCION_REFERENCIAL, REFERENCIA_ARCHIVO, FECHA_ORIGINAL_CREACION, RUC_PROVEEDOR, USUARIO_PC, MAC, OBSERVACION, ITEM_SERVICIO, ANO_SERVICIO, ID_SOLICITUD, ITEM_SOLICITUD, FLAG_LIQUIDACION, NOMBRE_ARCHIVO_PDFA, FLAG_ESTADO_PDFA, FLAG_VINC_MULTIPLE, HASHN1, HASHN2, HASHN3, COD_AGENCIA) VALUES ('001', '160', '0', '20204621242-01-F223-115254.XML', NULL, 'F', TO_DATE('25/10/24 08:19:55', 'DD/MM/RR HH24:MI:SS'), '30476', 'FACTURACION ELECTRONICA', '0', '/sistemas/moviles/facturacion_electronica/procesados/2024/20204621242/', NULL, NULL, NULL, 'N', NULL, 'X', '24', '012488', '2024', '235', '10 ', NULL, NULL, NULL, 'C', 'S', TO_DATE('25/10/24 08:20:02', 'DD/MM/RR HH24:MI:SS'), 'N', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0', NULL, '0', NULL, NULL, NULL, NULL, '0659');</textarea>
+    </div>
+
+    <div id="tableContainer" class="table-responsive mb-4"></div>
+    <div id="updatedQuery" class="sql-code"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const queryInput = document.getElementById('queryInput');
+    queryInput.addEventListener('input', function () {
+        generateEditableTable(this.value);
+    });
+
+    function generateEditableTable(query) {
+        const tableContainer = document.getElementById('tableContainer');
+        const updatedQueryContainer = document.getElementById('updatedQuery');
+        tableContainer.innerHTML = '';
+        updatedQueryContainer.innerHTML = '';
+
+        const regex = /INSERT INTO\s+(\w+)\s*\((.*?)\)\s*VALUES\s*\((.*)\);?/i;
+        const match = query.match(regex);
+
+        if (match) {
+            const tableName = match[1];
+            const columns = match[2].split(',').map(col => col.trim());
+
+            const valuesString = match[3];
+            const values = [];
+            let current = '';
+            let depth = 0;
+
+            for (let i = 0; i < valuesString.length; i++) {
+                const char = valuesString[i];
+
+                if (char === '(') depth++;
+                if (char === ')') depth--;
+                
+                if (char === ',' && depth === 0) {
+                    values.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current.trim());
+
+            const table = document.createElement('table');
+            table.className = 'table table-bordered table-striped';
+
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            const headerRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            const valueRow = document.createElement('tr');
+            values.forEach((val, index) => {
+                const td = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control';
+                input.value = val.replace(/['"]/g, '');
+                input.addEventListener('input', () => {
+                    values[index] = `'${input.value}'`;
+                    updateQueryDisplay(tableName, columns, values);
+                });
+                td.appendChild(input);
+                valueRow.appendChild(td);
+            });
+            tbody.appendChild(valueRow);
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            tableContainer.appendChild(table);
+
+            updateQueryDisplay(tableName, columns, values);
+        } else {
+            tableContainer.innerHTML = "<p class='text-danger'>Ingresa una consulta SQL válida (INSERT INTO ... VALUES ...).</p>";
+        }
+    }
+
+    function highlightSQL(query) {
+        const keywords = /\b(INSERT INTO|VALUES|SELECT|FROM|WHERE|UPDATE|DELETE|JOIN|INNER|LEFT|RIGHT|ON|AND|OR|IN|AS|SET|GROUP BY|ORDER BY)\b/gi;
+        const operators = /=|,|\(|\)|;/g;
+        const strings = /'([^']*)'/g;
+        return query
+            .replace(keywords, '<span class="sql-keyword">$&</span>')
+            .replace(/\b(SIG\.MOVILF_ARCHIVOS|USUARIOS)\b/gi, '<span class="sql-table">$&</span>')
+            .replace(strings, '<span class="sql-string">\'$1\'</span>')
+            .replace(operators, '<span class="sql-operator">$&</span>');
+    }
+
+    function updateQueryDisplay(tableName, columns, values) {
+        const updatedQueryContainer = document.getElementById('updatedQuery');
+        const updatedQuery = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${values.join(', ')});`;
+        updatedQueryContainer.innerHTML = highlightSQL(updatedQuery);
+    }
+
+    generateEditableTable(queryInput.value);
+</script>
+
+</body>
+</html>

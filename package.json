@@ -1,0 +1,26 @@
+{
+  "name": "express-sql-editor",
+  "version": "1.0.0",
+  "description": "SQL Query Editor with Express and Node.js",
+  "main": "index.js",
+  "scripts": {
+    "start:": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JorkDev/express-sql-editor.git"
+  },
+  "author": "Jorkdev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JorkDev/express-sql-editor/issues"
+  },
+  "homepage": "https://github.com/JorkDev/express-sql-editor#readme",
+  "dependencies": {
+    "express": "^4.21.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
